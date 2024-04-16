@@ -165,12 +165,22 @@ postgres.uploadData <- function(.conn, .tablename, .data, .logtable = "uploadlog
     expr = {
       if (preprocess) {
         print('preprocessing data...')
-        # Replace Inf and NaN with NA
-        .data[sapply(.data, is.numeric)] <- lapply(.data[sapply(.data, is.numeric)],
-                                                   function(x) ifelse(is.infinite(x) | is.nan(x), NA, x))
+
+        # Identify numeric columns
+        numeric_indices <- sapply(.data, is.numeric)
+
+        # Replace Inf and NaN with NA only in numeric columns
+        if (any(numeric_indices)) {
+          .data[, numeric_indices] <- lapply(.data[, numeric_indices, drop = FALSE], function(x) {
+            ifelse(is.infinite(x) | is.nan(x), NA, x)
+          })
+        }
+
         # Convert column names to lowercase
         names(.data) <- tolower(names(.data))
+
         print('preprocessing done.')
+
       }
 
       sysinfo <- Sys.info()
