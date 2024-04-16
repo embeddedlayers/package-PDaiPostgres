@@ -73,7 +73,12 @@ postgres.connect.pgpass <- function() {
 #' # Connect to a local PostgreSQL database
 #' con <- postgres.connect(.database = "mydatabase", .user = "myuser", .password = "mypassword")
 #'
-postgres.connect <-function(.database = NULL,.port = 5432,.host = 'localhost', .user = 'postgres', .password = 'password') {
+postgres.connect <-function(
+    .database = Sys.getenv("DATABASE_NAME"),
+    .port = 5432,
+    .host = Sys.getenv("DATABASE_HOST"),
+    .user = Sys.getenv("DATABASE_USER"),
+    .password = Sys.getenv("DATABASE_PASSWORD")) {
 
   .database <- tolower(.database)
 
@@ -166,20 +171,28 @@ postgres.uploadData <- function(.conn, .tablename, .data, .logtable = "uploadlog
       if (preprocess) {
         print('preprocessing data...')
 
-        # Identify numeric columns
         numeric_indices <- sapply(.data, is.numeric)
 
-        # Replace Inf and NaN with NA only in numeric columns
+        # Assuming .data is a data.table
         if (any(numeric_indices)) {
           .data[, numeric_indices] <- lapply(.data[, numeric_indices, drop = FALSE], function(x) {
             ifelse(is.infinite(x) | is.nan(x), NA, x)
           })
         }
 
+        # Detect JSON columns
+        json_indices <- sapply(.data, function(x) class(x) == "json")
+
+        # Convert JSON columns to character
+        if (any(json_indices)) {
+          .data[json_indices] <- lapply(.data[json_indices], as.character)
+        }
+
         # Convert column names to lowercase
         names(.data) <- tolower(names(.data))
 
         print('preprocessing done.')
+
 
       }
 
