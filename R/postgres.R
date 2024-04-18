@@ -181,7 +181,7 @@ postgres.uploadData <- function(.conn, .tablename, .data, .logtable = "uploadlog
         }
 
         # Detect JSON columns
-        json_indices <- sapply(.data, function(x) class(x) == "json")
+        json_indices <- unlist(sapply(.data, function(x) class(x) == "json"))
 
         # Convert JSON columns to character
         if (any(json_indices)) {
