@@ -301,21 +301,33 @@ postgres.delete <- function(.conn, .tablename, .predicatelist) {
 #'
 postgres.update <- function(.conn, .tablename, .predicatelist, .updatelist) {
 
+  # Convert table name to lowercase as before
   .tablename <- tolower(.tablename)
 
-  clause <-
-    paste(paste(names(.predicatelist), paste0("'", unlist(.predicatelist), "'"), sep = "="), collapse = " and ")
-  update <-
-    paste(paste(names(.updatelist), paste0("'", unlist(.updatelist), "'"), sep = "="), collapse = ", ")
-  statement <-
-    paste0("update ", .tablename, "  set ", update, "  where ", clause)
+  # Escape single quotes in predicate and update lists
+  .predicatelist <- lapply(.predicatelist, function(x) gsub("'", "''", x))
+  .updatelist <- lapply(.updatelist, function(x) gsub("'", "''", x))
 
+  # Add double quotes around table and column names to handle case sensitivity
+  clause <- paste(paste0('"', names(.predicatelist), '"', " = '",
+                         unlist(.predicatelist), "'"), collapse = " and ")
+
+  update <- paste(paste0('"', names(.updatelist), '"', " = '",
+                         unlist(.updatelist), "'"), collapse = ", ")
+
+  # Construct the SQL statement
+  statement <- paste0("UPDATE \"", .tablename, "\" SET ", update,
+                      " WHERE ", clause)
+
+  # Logging for debugging purposes
   cat("----- UPDATING DATA -----\n")
   cat("Table:", .tablename, "\n")
   cat("Criteria:", clause, "\n")
 
+  # Execute the SQL statement
   dbExecute(.conn, statement)
-  return(statement)
+
+  return(TRUE)
 }
 
 #' Query Data from a PostgreSQL Table with Optional Parameters
